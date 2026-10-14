@@ -1,0 +1,35 @@
+(() => {
+ const $=id=>document.getElementById(id), dialog=$('settingsDialog');
+ const vendorEndpoints={openai:'https://api.openai.com/v1',deepseek:'https://api.deepseek.com/v1',zhipu:'https://open.bigmodel.cn/api/paas/v4'};
+ function vendorHint(){const value=$('modelVendor').value;$('modelVendorHint').textContent=value==='deepseek'?'填写 DeepSeek API Key 和模型名称。':value==='zhipu'?'填写智谱 GLM API Key 和模型名称；模型可用性需测试确认。':value==='legacy'?'已有接口地址已保留；新配置请选择 OpenAI、DeepSeek 或 GLM。':'选择厂商后自动填写地址，API Key 和模型名称仍需自行填写。';}
+ function detectVendor(){const endpoint=$('modelEndpoint').value.trim().replace(/\/+$/,'');$('modelVendor').value=Object.keys(vendorEndpoints).find(key=>vendorEndpoints[key]===endpoint)||'legacy';vendorHint();}
+ let state, selected=null, returnTo=null, onboarding=false, poll=null, busy=false, dirty=false;
+ async function request(path,body){const response=await fetch(path,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json','X-ReadMaster':'1'},body:JSON.stringify(body)});const result=await response.json();if(!response.ok)throw new Error(result.error||'请求失败，请重试');return result;}
+ function feedback(message,error=false){$('modelFeedback').textContent=message;$('modelFeedback').classList.toggle('is-error',error);}
+ function fields(){return {id:selected,name:$('profileName').value.trim(),provider:$('modelProvider').value,endpoint:$('modelEndpoint').value.trim(),api_key:$('modelApiKey').value,model:$('modelName').value.trim(),max_revisions:Number($('modelRevisions').value)};}
+ function provider(){const api=$('modelProvider').value==='api';$('modelApiFields').hidden=!api;$('modelCodexFields').hidden=api;$('modelEndpoint').required=api;$('modelName').required=api;$('modelName').placeholder=api?'填写服务商提供的模型 ID':'留空使用 Codex 默认模型';if(!api)loginStatus();}
+ function list(){const container=$('modelProfiles');container.replaceChildren();for(const profile of state.profiles){const button=document.createElement('button');button.type='button';button.className='model-profile'+(profile.id===selected?' selected':'');button.setAttribute('aria-pressed',String(profile.id===selected));const name=document.createElement('strong');name.textContent=profile.name;const info=document.createElement('span');info.textContent=profile.provider==='api'?profile.model:(profile.model||'Codex 默认模型');button.append(name,info);if(profile.id===state.active_id){const active=document.createElement('small');active.textContent='当前使用';button.append(active);}button.onclick=()=>{if(dirty){feedback('请先保存当前修改，或点击“取消更改”后切换。',true);return;}select(profile);};container.append(button);}}
+ function select(profile){selected=profile?.id||null;if(selected)returnTo=selected;dirty=false;$('profileName').value=profile?.name||'';$('modelProvider').value=profile?.provider||'api';$('modelEndpoint').value=profile?.endpoint||'https://api.openai.com/v1';$('modelName').value=profile?.model||'';$('modelRevisions').value=profile?.max_revisions??2;$('modelApiKey').value='';$('modelApiKey').placeholder=profile?.has_key?`已保存 ${profile.key_mask}，留空保留`:'输入你的 API Key';$('modelDelete').disabled=!selected||selected==='codex';$('modelActivate').disabled=!selected;$('modelDeleteConfirm').hidden=true;feedback('');detectVendor();provider();list();}
+ async function loginStatus(){try{const result=await request('/api/codex/status');$('modelCodexStatus').textContent=!result.available?'未找到 Codex，请使用完整客户端或改用 API。':result.logged_in?'Codex 已登录，可以使用这套配置。':'Codex 尚未登录，请完成浏览器授权。';if(result.logged_in){clearInterval(poll);poll=null;}}catch(error){$('modelCodexStatus').textContent=error.message;}}
+ async function action(work){if(busy)return;busy=true;dialog.setAttribute('aria-busy','true');const buttons=[...dialog.querySelectorAll('button')],disabled=buttons.map(b=>b.disabled);buttons.forEach(b=>b.disabled=true);try{await work();}catch(error){feedback(error.message,true);}finally{busy=false;dialog.removeAttribute('aria-busy');buttons.forEach((b,i)=>b.disabled=disabled[i]);$('modelActivate').disabled=!selected;$('modelDelete').disabled=!selected||selected==='codex';}}
+ async function open(first=false){try{state=await request('/api/models');onboarding=first;$('modelsTitle').textContent=first?'连接你的模型':'Models';$('modelsIntro').textContent=first?'选择 API Key 或登录 Codex，开始翻译论文。也可以先阅读原文，稍后再配置。':'保存你的模型连接，随时切换。翻译使用当前配置。';$('modelsSkip').hidden=!first;select(state.profiles.find(p=>p.id===state.active_id)||state.profiles.find(p=>p.provider==='api')||state.profiles[0]);if(!dialog.open)dialog.showModal();}catch(error){$('noticeText').textContent=error.message;$('notice').hidden=false;}}
+ function close(){dialog.close();}
+ dialog.addEventListener('close',()=>{$('modelApiKey').value='';clearInterval(poll);poll=null;dirty=false;});
+ dialog.addEventListener('cancel',event=>{if(busy){event.preventDefault();return;}if(onboarding){event.preventDefault();skip();}});
+ async function skip(){await action(async()=>{await request('/api/models/skip',{});close();});}
+ $('modelsClose').onclick=()=>onboarding?skip():close();$('modelsSkip').onclick=skip;
+ $('modelsForm').addEventListener('input',()=>dirty=true);
+ $('modelProvider').onchange=provider;
+ $('modelVendor').onchange=()=>{const endpoint=vendorEndpoints[$('modelVendor').value];if(endpoint)$('modelEndpoint').value=endpoint;dirty=true;vendorHint();};
+ $('modelEndpoint').addEventListener('input',detectVendor);
+ $('newModelProfile').onclick=()=>{if(dirty){feedback('请先保存当前修改，或点击“取消更改”后新增。',true);return;}select(null);$('profileName').focus();};
+ $('modelsForm').onsubmit=event=>{event.preventDefault();action(async()=>{const result=await request('/api/models/save',fields());state=result;selected=result.id;dirty=false;$('modelApiKey').value='';list();await request('/api/models/activate',{id:selected});close();});};
+ $('modelCancelChanges').onclick=()=>{select(state.profiles.find(p=>p.id===(selected||returnTo))||state.profiles.find(p=>p.id===state.active_id)||state.profiles[0]);feedback('已取消未保存的更改。');};
+ $('modelActivate').onclick=()=>action(async()=>{if(dirty)throw new Error('当前表单有修改，请点击“保存并使用”。');await request('/api/models/activate',{id:selected});close();});
+ $('modelTest').onclick=()=>action(async()=>{feedback($('modelProvider').value==='api'?'正在测试连接，将发送一次小型模型请求…':'正在检查 Codex 登录…');const result=await request('/api/models/test',fields());feedback(result.message);});
+ $('modelLogin').onclick=()=>action(async()=>{const result=await request('/api/login',{});feedback(result.message);clearInterval(poll);poll=setInterval(loginStatus,3000);});
+ $('modelRefreshLogin').onclick=loginStatus;
+ $('modelDelete').onclick=()=>{$('modelDeleteConfirm').hidden=false;};$('modelDeleteNo').onclick=()=>{$('modelDeleteConfirm').hidden=true;};
+ $('modelDeleteYes').onclick=()=>action(async()=>{state=await request('/api/models/delete',{id:selected});select(state.profiles.find(p=>p.id===state.active_id)||state.profiles[0]);feedback('配置及保存的密钥已删除。');});
+ window.ReadMasterModels={open,onStartup:async()=>{try{const result=await request('/api/models');if(!result.onboarded)await open(true);}catch(error){$('noticeText').textContent=error.message;$('notice').hidden=false;}}};
+})();

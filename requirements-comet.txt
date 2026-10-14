@@ -1,0 +1,2 @@
+unbabel-comet==2.2.7
+hf_xet==1.2.0

@@ -1,0 +1,10 @@
+# Install into a separate Python 3.12 runtime, never the reader's .venv.
+# pdf2zh-next constrains PyMuPDF <1.25.3; the reader requires 1.28.2.
+pdf2zh-next==2.8.2
+babeldoc==0.5.24
+# BitStream was removed in bitstring 5; BabelDOC imports the 4.x API.
+bitstring>=4.3,<5
+# Keep the APIs against which the pinned engine was implemented.
+peewee>=3.17.8,<4
+openai>=1.0.0,<2
+

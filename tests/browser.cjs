@@ -1,0 +1,41 @@
+const { chromium } = require('./playwright.cjs');
+const fs = require('node:fs');
+(async()=>{
+ const browser=await chromium.launch({headless:true,channel:'msedge'});
+ const page=await browser.newPage({viewport:{width:1440,height:1000}});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(process.env.READMASTER_URL||'http://127.0.0.1:8766');
+ await page.locator('#fileInput').setInputFiles(process.env.READMASTER_TEST_PDF||'tests/paper_sets/2210.03629v3.pdf');
+ await page.locator('.pdf-page').first().waitFor();
+ await page.locator('.page-image').first().evaluate(img=>img.complete?Promise.resolve():new Promise(r=>img.onload=r));
+ await page.waitForTimeout(1000);
+ fs.mkdirSync('.impeccable/review',{recursive:true});
+ await page.screenshot({path:'.impeccable/review/desktop.png'});
+ await page.getByRole('button',{name:'模型设置',exact:true}).click();
+ await page.locator('#settingsDialog').waitFor({state:'visible'});
+ await page.screenshot({path:'.impeccable/review/settings.png'});
+ await page.locator('#settingsDialog .close-dialog').first().click();
+ await page.locator('#pageInput').fill('3');await page.locator('#pageInput').dispatchEvent('change');await page.waitForTimeout(650);
+ await page.locator('#pageInput').fill('1');await page.locator('#pageInput').dispatchEvent('change');await page.waitForTimeout(650);
+ await page.locator('#searchButton').click();await page.locator('#searchInput').fill('reasoning');
+ if((await page.locator('#searchCount').textContent())==='0 个结果')throw Error('search did not find source text');
+ await page.locator('#searchClose').click();await page.locator('#pageInput').fill('1');await page.locator('#pageInput').dispatchEvent('change');await page.waitForTimeout(650);
+ const sentence=page.locator('.sentence').first();
+ let interactions='translation pending';
+ if(await sentence.count()){
+   const text=await sentence.textContent();await sentence.click();
+   if(!await sentence.evaluate(e=>e.classList.contains('showing-source')))throw Error('click did not reveal source');
+   await page.screenshot({path:'.impeccable/review/held-source.png'});
+   await page.mouse.move(5,5);if(!await sentence.evaluate(e=>e.classList.contains('showing-source')))throw Error('leave changed language');await sentence.click();if(await sentence.textContent()!==text)throw Error('second click did not restore');
+   await sentence.focus();await page.keyboard.press('Enter');if(!await sentence.evaluate(e=>e.classList.contains('showing-source')))throw Error('keyboard source missing');
+   await page.keyboard.press('Escape');if(await sentence.textContent()!==text)throw Error('Escape did not restore');
+   interactions='mouse click toggle, search and keyboard passed';
+ }
+ await page.setViewportSize({width:390,height:844});await page.waitForTimeout(700);await page.screenshot({path:'.impeccable/review/mobile.png'});
+ const pageCount=await page.locator('.pdf-page').count();
+ await page.locator('#libraryButton').click();await page.waitForTimeout(900);
+ if(!await page.locator('#empty').isVisible()||await page.locator('.source-popup').count())throw Error('library did not reset reading state');
+ if(errors.length)throw Error(errors.join('\n'));
+ console.log(JSON.stringify({browserErrors:errors,interactions,pages:pageCount,libraryReset:true}));
+ await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});

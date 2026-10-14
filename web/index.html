@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ReadMaster · 论文阅读器</title><link rel="stylesheet" href="/startup.css"><link rel="stylesheet" href="/style.css"><script src="/startup.js" defer></script></head>
+<body>
+<div id="startupSplash" class="startup-splash" role="status" aria-live="polite" aria-label="正在加载 ReadMaster" hidden><div class="startup-brand" aria-hidden="true"><span class="startup-r">R</span><span class="startup-tagline"></span></div><div class="startup-recovery" hidden><span>加载时间较长，请稍候。</span><button type="button" id="startupRetry">重新加载</button></div></div>
+<header class="appbar"><span class="brand-mark">R</span><strong>ReadMaster</strong><span class="app-subtitle">reading tool for amateur</span><span class="spacer"></span><span id="connection" class="connection" hidden>本地文献库</span><button id="settingsButton" class="primary-button models-button" title="管理模型连接" aria-label="Models">Models</button></header>
+<nav class="tabbar" aria-label="文献"><button id="libraryButton" class="library-button">我的文献</button><div id="documentTabs" class="document-tabs" role="tablist" aria-label="已打开的论文"></div><span class="spacer"></span><button id="openButton" class="text-button">打开 PDF</button></nav>
+<div class="ribbon" role="toolbar" aria-label="阅读工具">
+<button id="sidebarButton" class="tool" title="显示或隐藏缩略图"></button><div class="separator"></div>
+<button id="prevButton" class="icon-button" title="上一页" aria-label="上一页"></button><label class="page-control"><input id="pageInput" type="number" min="1" value="1" aria-label="页码"><span id="pageTotal">/ 0</span></label><button id="nextButton" class="icon-button" title="下一页" aria-label="下一页"></button>
+<div class="separator"></div><button id="zoomOut" class="icon-button" title="缩小" aria-label="缩小"></button><select id="zoom" aria-label="缩放"><option value="fit">适合宽度</option><option value="0.8">80%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option></select><button id="zoomIn" class="icon-button" title="放大" aria-label="放大"></button>
+<div class="separator"></div><div class="view-switch"><button id="chineseButton" class="selected">中文</button><button id="originalButton">原文</button></div><label class="mark-option" hidden><input id="showMarks" type="checkbox" checked>句块提示</label>
+<span class="spacer"></span><section id="translationProgress" class="translation-progress" aria-label="翻译进度" hidden>
+<div class="progress-summary"><span id="progressPercent">0%</span><span id="progressEta">预计剩余：正在估算</span></div>
+<div id="progressTrack" class="progress-track" role="progressbar" aria-label="已处理句块" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progressFill" class="progress-fill"></div></div>
+<span id="progressStage" hidden></span><span id="progressModel" hidden></span><span id="progressCount" hidden></span>
+</section><span id="translationComplete" class="translation-complete" role="status" hidden>翻译完成</span><button id="searchButton" class="tool">查找</button><button id="termsButton" class="tool">术语</button><button id="processButton" class="primary-button">翻译论文</button><button id="pauseButton" class="text-button" hidden>暂停</button>
+</div>
+<div id="searchBar" class="search-bar" hidden><label for="searchInput">查找原文或译文</label><input id="searchInput" type="search" placeholder="输入关键词"><span id="searchCount">0 个结果</span><button id="searchPrev" class="text-button">上一个</button><button id="searchNext" class="text-button">下一个</button><button id="searchClose" class="icon-button" aria-label="关闭查找">×</button></div>
+<div id="notice" class="notice" hidden><span id="noticeText"></span><button id="noticeClose" aria-label="关闭提示">×</button></div>
+<main class="workspace">
+<aside id="sidebar" class="sidebar"><div class="side-tabs"><button id="thumbTab" class="active">缩略图</button><button id="outlineTab">目录</button></div><div id="thumbs" class="thumbs"></div><div id="outline" class="outline" hidden></div></aside>
+<section id="canvas" class="canvas" aria-label="论文页面">
+<div id="empty" class="empty-state"><div class="paper-stack"><svg viewBox="0 0 80 92" aria-hidden="true"><path d="M16 4h34l16 17v66H16z" fill="#fff" stroke="#c0c6cf" stroke-width="1.5"/><path d="M50 4v17h16M27 36h27M27 45h27M27 54h20M27 69h27" fill="none" stroke="#c0c6cf" stroke-width="2"/><path d="M27 36h27" stroke="#b43236" stroke-width="3"/></svg></div><h1>把论文拖到这里，开始阅读</h1><p>保留 PDF 页面，中文阅读，点击句块切换中英文。</p><button id="emptyOpen" class="primary-button">打开 PDF 文件</button><span class="empty-detail">支持文字版 PDF · 文献保存在本机</span><div id="recentList" class="recent-list" aria-label="本地阅读历史"></div></div>
+<div id="pages" class="pages"></div>
+</section>
+<aside id="detailPanel" class="detail-panel" hidden><div class="panel-heading"><h2 id="panelTitle">技术术语</h2><button id="closePanel" class="icon-button" aria-label="关闭面板">×</button></div><div id="panelBody"></div></aside>
+</main>
+<footer class="statusbar"><span id="wordCount" class="word-count" aria-live="polite" hidden></span><span id="statusText" hidden>就绪</span><span class="spacer"></span><span id="pageStatus"></span><button id="quitButton" title="停止本地服务">退出</button></footer>
+<dialog id="settingsDialog" class="models-dialog" aria-labelledby="modelsTitle">
+<div class="dialog-heading"><h2 id="modelsTitle">Models</h2><button type="button" id="modelsClose" aria-label="关闭 Models">×</button></div>
+<p id="modelsIntro" class="dialog-note">保存你的模型连接，随时切换。翻译使用当前配置。</p>
+<div class="models-layout"><aside class="models-sidebar"><div class="models-list-heading"><span>模型配置</span><button type="button" id="newModelProfile" class="secondary-button">新增配置</button></div><div id="modelProfiles" class="model-profiles" aria-label="已保存的模型配置"></div></aside>
+<form id="modelsForm" class="models-editor"><label>配置名称<input id="profileName" maxlength="80" required placeholder="例如：我的论文翻译模型"></label>
+<label>连接方式<select id="modelProvider"><option value="api">API Key</option><option value="codex">Codex 账号</option></select></label>
+<div id="modelApiFields"><div class="model-api-location"><label>模型厂商<select id="modelVendor" aria-describedby="modelVendorHint"><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option><option value="zhipu">GLM · 智谱</option><option value="legacy" disabled hidden>已有接口地址</option></select></label><label>API 地址<input id="modelEndpoint" type="url" required value="https://api.openai.com/v1" autocomplete="off"></label></div><p id="modelVendorHint" class="model-help">选择厂商后自动填写地址，API Key 和模型名称仍需自行填写。</p><label>API Key<input id="modelApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="输入你的 API Key"></label><p class="model-help">密钥加密保存在本机。DeepSeek、GLM 使用 JSON 输出并检查结构；OpenAI 模型需支持 JSON Schema。</p></div>
+<div id="modelCodexFields" hidden><p id="modelCodexStatus" role="status">正在检查登录状态…</p><div class="model-inline-actions"><button type="button" id="modelLogin" class="secondary-button">登录 Codex</button><button type="button" id="modelRefreshLogin" class="text-button">刷新登录状态</button></div><p class="model-help">在浏览器中登录自己的账号。登录凭据由官方 Codex 管理。</p></div>
+<label>模型名称<input id="modelName" maxlength="120" placeholder="填写服务商提供的模型 ID"></label><label class="model-revisions" hidden>旧流程修订次数<input id="modelRevisions" type="number" min="0" max="5" value="2" required></label>
+<div class="model-inline-actions"><button type="button" id="modelTest" class="secondary-button">测试连接</button><button type="button" id="modelDelete" class="text-button model-delete">删除配置</button></div>
+<p id="modelFeedback" class="model-feedback" role="status" aria-live="polite"></p>
+<div id="modelDeleteConfirm" class="model-delete-confirm" hidden><span>删除这套配置和保存的密钥？</span><button type="button" id="modelDeleteYes" class="text-button">确认删除</button><button type="button" id="modelDeleteNo" class="text-button">取消</button></div>
+<div class="dialog-actions"><button type="button" id="modelsSkip" class="text-button" hidden>先阅读，稍后配置</button><button type="button" id="modelCancelChanges" class="text-button">取消更改</button><button type="button" id="modelActivate" class="secondary-button">使用此配置</button><button type="submit" class="primary-button">保存并使用</button></div></form></div>
+</dialog>
+<dialog id="translateDialog"><form id="translateForm"><div class="dialog-heading"><h2>翻译论文</h2><button type="button" class="close-dialog" aria-label="关闭">×</button></div><p class="dialog-note">选择要翻译的页码范围。继续翻译时会保留已有译文，接着完成剩余工作。</p><div class="range-fields"><label>起始页<input id="startPage" type="number" min="1" value="1"></label><label>结束页<input id="endPage" type="number" min="1" value="1"></label></div><p>图表、独立公式与参考文献保留原样。尚未翻译的区域显示英文，较长的文字可在原段落内滚动查看。</p><div class="dialog-actions"><button type="button" class="secondary-button close-dialog">取消</button><button type="submit" class="primary-button">开始翻译</button></div></form></dialog>
+<div id="dropOverlay" class="drop-overlay" hidden><div>松开文件，打开论文</div></div><input id="fileInput" type="file" accept="application/pdf,.pdf" hidden>
+<script src="/word-count.js" defer></script><script src="/models.js" defer></script><script src="/app.js" defer></script><script src="/reader-menu.js" defer></script>
+<dialog id="deleteDialog" aria-labelledby="deleteTitle"><div class="dialog-heading"><h2 id="deleteTitle">删除本地文献</h2><button class="close-delete" aria-label="关闭删除确认">×</button></div><p id="deleteName" class="delete-name"></p><p>将删除文献库中的 PDF 副本、译文、术语、阅读记录和缓存，无法恢复。你电脑上原来的 PDF 文件不受影响。</p><p id="deleteError" role="alert"></p><div class="dialog-actions"><button class="secondary-button close-delete">取消</button><button id="deleteConfirm" class="primary-button">删除文献</button></div></dialog>
+</body></html>
