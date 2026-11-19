@@ -39,3 +39,10 @@ models.json
 *.sqlite3
 *.db
 *.bundle
+
+# Downloaded or derived model weights must not enter ordinary Git.
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx

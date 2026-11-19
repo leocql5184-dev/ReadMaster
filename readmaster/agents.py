@@ -32,6 +32,13 @@ FRAGMENT_RULE = ("\n机械句号切分可能把小数拆开。必须按编号顺
 for _role in ('translate', 'revise', 'evaluate', 'accept'):
     ROLE_PROMPTS[_role] += FRAGMENT_RULE
 
+MATH_RULE = ("\n含公式的句子必须完整翻译公式前后所有叙述和条件。数学变量不是英文单词，不翻译或补全变量；"
+             "逐字保留显式公式（包括 $...$、\\(...\\)、\\[...\\]）、上下标及公式占位符，不删除、重复或改写。"
+             "遇到提取残缺的公式，不猜测修复；评估时报告原文提取问题。逐项核对句中每个分句，不能用概括代替翻译。"
+             "（1）、(1) 等条目编号跟随本条内容，不能搬到前一条。")
+for _role in ('translate', 'revise', 'evaluate', 'accept', 'babeldoc_translate'):
+    ROLE_PROMPTS[_role] += MATH_RULE
+
 
 _CODEX_CALL_LOCK = threading.BoundedSemaphore(2)
 

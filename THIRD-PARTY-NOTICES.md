@@ -15,7 +15,7 @@ the GitHub snapshot and under `source/` in the portable distribution.
 - Codex CLI 0.162.1 Windows x64: Apache-2.0. Official npm platform distribution copied unmodified as a separate executable and resources. https://github.com/openai/codex . See licenses/Codex.txt and tools/codex/codex-resources/voice/licenses/ for bundled voice components, which ReadMaster does not invoke.
 - pywebview 6.2.1: BSD-3-Clause. https://github.com/r0x0r/pywebview . See licenses/pywebview.txt.
 - Python.NET 3.2.1, clr-loader 0.3.1, Bottle 0.13.4, proxy-tools 0.1.0: MIT. CFFI 2.1.1 and pycparser 3.11: BSD. typing-extensions 4.16.0: PSF. Corresponding license notices are in licenses/.
-- Microsoft WebView2 SDK loader and interop assemblies are bundled by pywebview; the Evergreen WebView2 browser runtime is provided by Windows, not bundled in this archive. https://developer.microsoft.com/microsoft-edge/webview2/ . See licenses/WebView2.txt.
+- Microsoft WebView2 SDK loader and interop assemblies are bundled by pywebview. The complete Windows installer additionally carries Microsoft's unmodified, signed x64 Evergreen Standalone Installer, installing it only when the runtime is missing; a source-only snapshot does not contain that executable. https://developer.microsoft.com/microsoft-edge/webview2/ . See licenses/WebView2.txt.
 
 The isolated PDF engine, when bundled under `tools/babeldoc/`, includes:
 
@@ -35,10 +35,32 @@ No login files, access tokens, API keys, user PDFs, task histories or runtime ca
 
 - The separate relocatable runtime in `tools/comet` includes Python 3.12.10, PyTorch 2.6.0+cpu and unbabel-comet 2.2.7. Python's distribution license is included at runtime root; package distribution metadata and license files are preserved in `Lib/site-packages`.
 - unbabel-comet: Apache-2.0, https://github.com/Unbabel/COMET . PyTorch and NumPy retain their BSD license notices; Transformers, Hugging Face Hub, SentencePiece and PyTorch Lightning retain their package notices.
-- COMETKiwi/XCOMET checkpoints are not redistributed in the archive. They are downloaded after the user's Hugging Face access request is accepted. Their model-specific licenses and conditions are distinct from the COMET source-code license: https://github.com/Unbabel/COMET/blob/master/LICENSE.models.md .
+- The complete Windows installer includes two adapted mixed-INT8 model bundles (not the original FP32 checkpoints). Source-only snapshots do not include weights. Their model-specific licenses and conditions are distinct from the COMET source-code license: https://github.com/Unbabel/COMET/blob/master/LICENSE.models.md .
 
 The configured `Unbabel/wmt22-cometkiwi-da` and `Unbabel/XCOMET-XL` model cards
-both specify CC BY-NC-SA 4.0. Users must accept the respective access conditions;
+both specify CC BY-NC-SA 4.0. Direct downloads from the official gated repositories require accepting the respective access conditions; loading the fully bundled models does not require Hugging Face authentication.
 the XCOMET model card requires authorization from Unbabel for commercial services.
 COMET's authors request citation of their work and identification of the model
 used. Model links and research references are listed in README.md.
+
+The 0.5.0.1 installer distributes adapted models for noncommercial use under
+CC BY-NC-SA 4.0, with original creators, pinned revisions, modification notices,
+original LICENSE/model cards and tokenizer MIT notices in `licenses/models/`.
+The recorded audit identifies the public gate metadata and the actual pinned
+LICENSE texts. It does not grant commercial authorization or imply endorsement.
+ReadMaster source remains AGPL-3.0; separate model terms apply to model material.
+The unchanged quantization manifests retain export provenance; supplemental
+DISTRIBUTION-NOTICE.txt files describe this subsequent distribution.
+
+Inno Setup's installer engine is used unmodified; acknowledgment and its license
+are included in `licenses/Inno-Setup.txt`. The online bootstrapper source is
+included with ReadMaster's corresponding source.
+
+Microsoft Visual C++ v14 x64 runtime is a separate system prerequisite. Its
+installer is not redistributed in this package: if required, Setup downloads
+the pinned file directly from Microsoft's official HTTPS host, validates SHA-256,
+and starts Microsoft's installer under its own terms. A matching official file
+provided by the user next to Setup can also be used offline. Microsoft's
+redistribution permission is limited to licensed Visual Studio users; this
+release does not assume that qualification. Official terms and download guidance:
+https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170

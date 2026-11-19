@@ -81,6 +81,12 @@ def load_checkpoint_mapped(checkpoint):
     a second full CPU copy. Map only this trusted checkpoint, preserving its
     original weights, dtype and COMET's initialization/configuration logic.
     """
+    if Path(checkpoint).suffix == '.json':
+        try:
+            from xcomet_quantized import load_quantized
+        except ImportError:
+            from scripts.xcomet_quantized import load_quantized
+        return load_quantized(checkpoint)
     import torch
     from comet import load_from_checkpoint
     checkpoint = Path(checkpoint).resolve()
@@ -136,6 +142,20 @@ def available_memory():
 
 
 def run(request):
+    # Dynamic INT8 is sensitive to upstream floating-point accumulation order.
+    # Match the tested recipe's CPU thread count for either quantized metric.
+    if Path(request['model']).suffix == '.json' and Path(request['model']).is_file():
+        import torch
+        previous = torch.get_num_threads()
+        torch.set_num_threads(6)
+        try:
+            return _run(request)
+        finally:
+            torch.set_num_threads(previous)
+    return _run(request)
+
+
+def _run(request):
     global _MODEL_LOADS
     cache_root = Path(request.get('cache_root', Path(__file__).resolve().parent.parent/'data'/'comet-models'))
     cache_root.mkdir(parents=True, exist_ok=True)
@@ -145,6 +165,9 @@ def run(request):
     from huggingface_hub import snapshot_download, try_to_load_from_cache
     # Checkpoints are trusted official/model paths chosen by the local operator.
     checkpoint = request['model']
+    quantized = Path(checkpoint).suffix == '.json' and Path(checkpoint).is_file()
+    if quantized and request.get('device', 'cpu') != 'cpu':
+        raise ValueError('INT8 COMET bundle supports CPU only; select the FP32 model for CUDA')
     if not Path(checkpoint).is_file():
         options = {'revision': request.get('revision'), 'cache_dir': str(cache_root/'hub')}
         cached = try_to_load_from_cache(checkpoint, 'checkpoints/model.ckpt', **options)
@@ -154,12 +177,18 @@ def run(request):
         else:
             model_dir = snapshot_download(checkpoint, **options, allow_patterns=['hparams.yaml', 'checkpoints/*.ckpt'])
             checkpoint = str(Path(model_dir)/'checkpoints'/'model.ckpt')
-    key = (str(checkpoint), request.get('device', 'cpu'))
+    identity = str(checkpoint)
+    if quantized:
+        stat = Path(checkpoint).stat()
+        identity += f':{stat.st_mtime_ns}:{stat.st_size}'
+    key = (identity, request.get('device', 'cpu'))
     if key not in _MODELS:
         import gc
         # XL plus Kiwi fit only when sufficient physical RAM remains. CUDA uses
         # one resident model to avoid assuming spare VRAM from host RAM.
-        required = Path(checkpoint).stat().st_size + 3 * 1024**3
+        size = (json.loads(Path(checkpoint).read_text(encoding='utf-8'))['weights_bytes']
+                if quantized else Path(checkpoint).stat().st_size)
+        required = size + 3 * 1024**3
         if key[1] == 'cuda' or available_memory() < required or len(_MODELS) >= 2:
             _MODELS.clear()
             gc.collect()

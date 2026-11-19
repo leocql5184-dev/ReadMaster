@@ -13,6 +13,16 @@ def block(text, y, size=10, x=60, width=450):
 
 
 class PdfLayoutTests(unittest.TestCase):
+    def test_lettered_mixed_case_appendix_resumes_after_references(self):
+        result = self.extract([
+            block('References',230,12),
+            block('A. Author wrote this reference with enough ordinary words to remain unmodified.',260,10),
+            block('A. Discussion, Limitations, and Future Work',300,12),
+            block('This appendix paragraph has enough words and should be translated normally.',340,10),
+        ])
+        self.assertFalse(next(b for b in result['blocks'] if b['source'].startswith('A. Author'))['sentences'])
+        self.assertTrue(next(b for b in result['blocks'] if b['source'].startswith('This appendix'))['sentences'])
+
     def test_native_search_bounds_cover_word_not_paragraph(self):
         import tempfile
         from pathlib import Path

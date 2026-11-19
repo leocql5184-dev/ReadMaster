@@ -3,6 +3,57 @@ import copy
 import hashlib
 import json
 import re
+from collections import Counter
+
+
+# Explicit math delimiters and renderer placeholders are indivisible source units.
+MATH_TOKEN = re.compile(r'\$\$[\s\S]+?\$\$|(?<!\\)\$[^$\n]+?(?<!\\)\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\]|\{v\d+\}|\{\{\d+\}\}')
+
+
+def split_sentences(text, prefix="s"):
+    """Lossless prose boundaries; keep decimals, abbreviations and math intact."""
+    protected = [m.span() for m in MATH_TOKEN.finditer(text)]
+    def inside(pos):
+        return any(a <= pos < b for a, b in protected)
+
+    boundaries = set()
+    for match in re.finditer(r'[.!?。！？]', text):
+        pos = match.start()
+        if inside(pos):
+            continue
+        if match.group() == '.':
+            before, after = text[:pos], text[pos+1:]
+            if before[-1:].isdigit() and after[:1].isdigit():
+                continue
+            # Dotted identifiers, initials, common academic abbreviations.
+            if re.match(r'[A-Za-z0-9_]', after):
+                continue
+            if re.search(r'\b(?:Fig|Figs|Eq|Eqs|Sec|Secs|Dr|Prof|Mr|Mrs|vs|e\.g|i\.e|et al)\Z', before, re.I):
+                continue
+            if re.search(r'\b[A-Z]\Z', before) and re.match(r'\s+[A-Z]', after):
+                continue
+        end = match.end()
+        while end < len(text) and text[end] in '.!?。！？\"\u201d\u2019':
+            end += 1
+        boundaries.add(end)
+    # A parenthesized item starts a unit, but a reference such as Eq. (1)
+    # and a number inside a formula do not.
+    for match in re.finditer(r'(?<![A-Za-z0-9_])[（(]\d{1,3}[）)](?=\s*[A-Za-z\u4e00-\u9fff])', text):
+        pos = match.start()
+        before = text[:pos].rstrip()
+        if inside(pos) or re.search(r'\b(?:Eq(?:uation)?s?|Fig(?:ure)?s?|Section|in|see|by|from)\.?\Z|[=+−*/]|式\Z', before, re.I):
+            continue
+        boundaries.add(pos)
+    result, start = [], 0
+    for end in sorted(boundaries | {len(text)}):
+        if not text[start:end].strip():
+            continue
+        result.append({'id': f'{prefix}_{len(result)+1:03d}', 'source': text[start:end], 'start': start, 'end': end})
+        start = end
+    if result and start < len(text):
+        result[-1]['source'] += text[start:]
+        result[-1]['end'] = len(text)
+    return result
 
 
 def split_periods(text, prefix="s"):
@@ -72,6 +123,11 @@ def validate_translations(output, sentences):
         found[ident] = value.strip()
     if set(found) != expected:
         raise ValueError("译文没有覆盖全部请求句块")
+    for sentence in sentences:
+        source_math = Counter(MATH_TOKEN.findall(sentence['source']))
+        target_math = Counter(MATH_TOKEN.findall(found[sentence['id']]))
+        if source_math != target_math:
+            raise ValueError(f"公式或占位符发生遗漏、重复或改写：{sentence['id']}，请逐字保留完整公式")
     for left, right in zip(sentences, sentences[1:]):
         number = re.search(r'(\d+)\.$', left['source'].rstrip())
         tail = re.match(r'(\d+)', right['source'])

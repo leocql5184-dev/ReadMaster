@@ -13,6 +13,7 @@ import threading
 
 from .pipeline import (translation_schema, review_schema, validate_translations,
                        validate_review, CHECKLIST, adjacent_ids)
+from .model_routing import select_models
 
 VERSION = 'comet-document-v6-expert'
 # Acceptance policy changes do not change the actual model inputs or weights.
@@ -151,8 +152,7 @@ class CometBackend:
         self.python = Path(os.environ.get('READMASTER_COMET_PYTHON', str(portable if portable.is_file()
                            else self.root / '.venv-comet' / 'Scripts' / 'python.exe')))
         self.worker = self.root/'tools'/'comet'/'app'/'comet_worker.py' if portable.is_file() else self.root/'scripts'/'comet_worker.py'
-        self.models = {'kiwi': os.environ.get('READMASTER_KIWI_MODEL', 'Unbabel/wmt22-cometkiwi-da'),
-                       'xcomet': os.environ.get('READMASTER_XCOMET_MODEL', 'Unbabel/XCOMET-XL')}
+        self.models = select_models(self.root)
         defaults = {'kiwi': ('Unbabel/wmt22-cometkiwi-da', '1ad785194e391eebc6c53e2d0776cada8f83179a'),
                     'xcomet': ('Unbabel/XCOMET-XL', '6a123c5e8e6dccab25e5fcffa3c8b417abadb462')}
         self.revisions = {}
@@ -161,6 +161,8 @@ class CometBackend:
             if Path(model).is_file():
                 stat = Path(model).stat()
                 revision = f'local:{stat.st_size}:{stat.st_mtime_ns}'
+                if Path(model).suffix == '.json':
+                    revision = 'int8-manifest:'+hashlib.sha256(Path(model).read_bytes()).hexdigest()
             elif not revision and model == defaults[kind][0]:
                 revision = defaults[kind][1]
             elif not revision:
@@ -180,6 +182,10 @@ class CometBackend:
                          'src': u['src'], 'mt': u['mt'], 'runtime': 'unbabel-comet-2.2.7-fp32'}
             if kind == 'xcomet':
                 signature['runtime'] += '-complete-spans-v1'
+            if Path(self.models[kind]).suffix == '.json':
+                signature['runtime'] = 'unbabel-comet-2.2.7-mixed-int8-v1-cpu6'
+                if kind == 'xcomet':
+                    signature['runtime'] += '-complete-spans-v1'
             digest = hashlib.sha256(json.dumps(signature, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
             path = self.directory / (digest+'.json')
             if path.exists():

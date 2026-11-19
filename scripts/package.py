@@ -44,7 +44,7 @@ shutil.copytree(comet_runtime,target/'tools/comet',ignore=shutil.ignore_patterns
 source=target/'source'
 for folder in ('readmaster','web','scripts','tests','assets'):
     shutil.copytree(root/folder,source/folder,ignore=shutil.ignore_patterns('__pycache__','paper_sets'))
-for name in ('launcher.py','requirements.txt','requirements-comet.txt','requirements-babeldoc.txt','requirements-babeldoc-lock.txt','README.md','LICENSE','THIRD-PARTY-NOTICES.md','BabelDOC接入记录.md','COMET评估接入.md'):
+for name in ('launcher.py','requirements.txt','requirements-comet.txt','requirements-babeldoc.txt','requirements-babeldoc-lock.txt','README.md','LICENSE','THIRD-PARTY-NOTICES.md','BabelDOC接入记录.md','COMET评估接入.md','XCOMET量化说明.md','COMETKiwi量化说明.md'):
     shutil.copy2(root/name,target/name)
     if name in ('launcher.py','requirements.txt','requirements-comet.txt','requirements-babeldoc.txt','requirements-babeldoc-lock.txt'):
         shutil.copy2(root/name,source/name)

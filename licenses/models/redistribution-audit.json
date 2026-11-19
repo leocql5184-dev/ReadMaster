@@ -1,0 +1,40 @@
+{
+  "checked_date": "2026-11-18",
+  "redistribution": "noncommercial_only_with_attribution_and_sharealike",
+  "models": [
+    {
+      "id": "Unbabel/XCOMET-XL",
+      "revision": "6a123c5e8e6dccab25e5fcffa3c8b417abadb462",
+      "license": "cc-by-nc-sa-4.0",
+      "gated": "auto",
+      "extra_gate_fields": {},
+      "license_sha256": "dc8cae48482c80b1dee06dd140fa005f91e8657040921d4e58fa8732e739d330"
+    },
+    {
+      "id": "Unbabel/wmt22-cometkiwi-da",
+      "revision": "1ad785194e391eebc6c53e2d0776cada8f83179a",
+      "license": "cc-by-nc-sa-4.0",
+      "gated": "auto",
+      "extra_gate_fields": {
+        "extra_gated_heading": "Acknowledge license to accept the repository",
+        "extra_gated_button_content": "Acknowledge license"
+      },
+      "license_sha256": "dc8cae48482c80b1dee06dd140fa005f91e8657040921d4e58fa8732e739d330"
+    }
+  ],
+  "interpretation": "Both pinned LICENSE files permit sharing original and adapted material for noncommercial purposes. Public repo cards/metadata contain no additional prohibition on redistribution. Default HF access gating is not a new license restriction. This does not grant commercial use authorization.",
+  "tokenizer_provenance": {
+    "infoxlm": "Microsoft UniLM InfoXLM README explicitly identifies the same vocabulary/tokenizer/architecture as XLM-R; preserve Microsoft UniLM and Facebook fairseq MIT notices. HF infoxlm card lacks a license field; do not present that card alone as MIT evidence.",
+    "xlm_roberta_xl": "facebook/xlm-roberta-xl model card declares MIT; preserve fairseq license."
+  },
+  "sources": [
+    "https://huggingface.co/Unbabel/XCOMET-XL",
+    "https://huggingface.co/Unbabel/wmt22-cometkiwi-da",
+    "https://raw.githubusercontent.com/Unbabel/COMET/master/LICENSE.models.md",
+    "https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.en",
+    "https://github.com/microsoft/unilm/tree/master/infoxlm",
+    "https://github.com/microsoft/unilm/blob/master/LICENSE",
+    "https://huggingface.co/facebook/xlm-roberta-xl",
+    "https://github.com/facebookresearch/fairseq/blob/main/LICENSE"
+  ]
+}

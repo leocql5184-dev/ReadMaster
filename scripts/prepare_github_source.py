@@ -8,8 +8,8 @@ import subprocess
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_DIRS = {'readmaster', 'web', 'scripts', 'tests', 'prompts', 'licenses'}
-SOURCE_EXTENSIONS = {'.py', '.js', '.cjs', '.html', '.css', '.md', '.txt', '.json'}
+SOURCE_DIRS = {'readmaster', 'web', 'scripts', 'tests', 'prompts', 'licenses', 'installer'}
+SOURCE_EXTENSIONS = {'.py', '.js', '.cjs', '.html', '.css', '.md', '.txt', '.json', '.cs', '.iss', '.manifest'}
 PRIVATE_NOTES = {'版本备份.md', '产品概述.md', 'PRODUCT.md', '竞品调研与产品评估.md',
                  '实现方案.md', 'Codex多智能体技术路线.md', '翻译流程决策.md',
                  '优化待办.md', 'DESIGN.md'}
@@ -45,6 +45,8 @@ def main():
         if source.is_symlink() or not source.resolve().is_relative_to(ROOT):
             raise RuntimeError(f'Unsafe source path: {relative}')
         data = source.read_bytes()
+        if len(data) > 100 * 1024 * 1024:
+            raise RuntimeError(f'File exceeds GitHub regular Git limit: {relative}')
         if relative.suffix != '.ico':
             text = data.decode('utf-8-sig')
             for label, pattern in PATTERNS.items():
@@ -64,6 +66,9 @@ def main():
             zipped.write(destination / relative, 'ReadMaster/' + relative.as_posix())
     report = {'source_folder': str(destination.relative_to(ROOT)),
               'archive': str(archive.relative_to(ROOT)), 'files': len(contents),
+              'source_bytes': sum(len(data) for data in contents.values()),
+              'largest_file': max(({'path': path.as_posix(), 'bytes': len(data)}
+                                   for path, data in contents.items()), key=lambda item: item['bytes']),
               'archive_bytes': archive.stat().st_size,
               'sha256': hashlib.sha256(archive.read_bytes()).hexdigest(),
               'includes_git_history': False, 'pattern_scan': 'passed',

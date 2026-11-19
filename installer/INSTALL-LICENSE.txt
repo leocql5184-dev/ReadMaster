@@ -1,0 +1,18 @@
+ReadMaster 与随包模型许可
+
+ReadMaster 源码采用 GNU AGPL-3.0，完整文本在安装目录 LICENSE 中，源码和第三方对应源码在 source/ 中。第三方组件依各自许可分发，详见 THIRD-PARTY-NOTICES.md 和 licenses/。
+
+随包的 COMETKiwi、XCOMET 量化模型源自 Unbabel，均按 Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International（CC BY-NC-SA 4.0）分发。量化修改由 ReadMaster contributors 完成；不代表 Unbabel 认可或提供支持。
+
+该模型许可允许非商业用途的复制、改编与分享，须保留署名和许可、标明修改，改编成果须遵守相同方式共享条件。商业服务应向模型权利人取得另行授权。该限制适用于模型材料，不改变 ReadMaster 源码本身的 AGPL 许可。
+
+量化模型没有准确性或适用性保证；评分不等于翻译正确。模型说明、固定版本来源、完整原始 LICENSE、量化配方和分词器版权说明均随包提供。
+
+模型来源：
+https://huggingface.co/Unbabel/wmt22-cometkiwi-da
+https://huggingface.co/Unbabel/XCOMET-XL
+许可全文：https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.en
+
+安装时无需 Hugging Face 登录。翻译和语义审校仍使用用户在 Models 页面配置的服务，会发送相应论文文本和上下文；服务账号和费用由用户自行管理。安装包不包含任何作者账号、API 密钥或论文。
+
+本说明不增加上述许可证以外的限制；完整法律条款以随包许可证为准。

@@ -29,6 +29,7 @@ def main():
                     ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
     (target/'app').mkdir(exist_ok=True)
     shutil.copy2(ROOT/'scripts/comet_worker.py', target/'app/comet_worker.py')
+    shutil.copy2(ROOT/'scripts/xcomet_quantized.py', target/'app/xcomet_quantized.py')
     env = dict(os.environ)
     for key in ('PYTHONPATH', 'PYTHONHOME', 'VIRTUAL_ENV'):
         env.pop(key, None)

@@ -57,6 +57,7 @@ class CheckpointTests(unittest.TestCase):
             with patch.object(server,'DATA' ,Path(temp)),patch.object(server,'DOCS',{'test':doc}),\
                  patch.object(server,'STOPS',{'test':threading.Event()}),\
                  patch.object(server,'CodexAgent',return_value=object()),\
+                 patch('readmaster.babeldoc_agent.load_template',return_value=None),\
                  patch.object(server,'codex_binary',return_value='unused'),\
                  patch.object(server,'translate_batch',side_effect=batch),\
                  patch.object(server.CometBackend,'predict',return_value=[]),\

@@ -1,9 +1,9 @@
 """Layout extraction. Original pixels stay intact; only prose receives overlays."""
 import re
 import pymupdf as fitz
-from .pipeline import split_periods
+from .pipeline import split_sentences
 
-LAYOUT_VERSION = 3
+LAYOUT_VERSION = 4
 NUMERIC_LAYOUT_VERSION = 1
 COMMON_HEADING = re.compile(r'^(?:(?:\d+(?:\.\d+)*\.?|[A-Z])\s+)?(?:abstract|introduction|background|related work|preliminaries|methods?|methodology|experiments?|experimental (?:setup|results)|results(?: and discussion)?|discussion|conclusions?|limitations|acknowledg(?:e)?ments|references|bibliography|appendix)\s*[:.]?$', re.I)
 
@@ -186,6 +186,13 @@ def extract_pdf(path):
                 ref_section = True
             if re.match(r"^(?:[A-Z]\s+)?APPENDIX", text, re.I) or re.match(r"^[A-Z]\s+[A-Z][A-Z ]{4,}", text):
                 ref_section = False
+            # Lettered appendix headings commonly follow the bibliography as
+            # "A. Discussion", with mixed case. Require heading typography so
+            # an author initial in a reference cannot end the bibliography.
+            if (ref_section and size >= 11
+                    and re.match(r"^[A-Z]\.\s+[A-Z][A-Za-z -]{3,}", text)
+                    and len(text) < 180):
+                ref_section = False
             words = re.findall(r"[A-Za-z]{2,}", text)
             top, bottom = b["bbox"][1], b["bbox"][3]
             header_footer = top < 28 or bottom > page.rect.height - 25 or re.fullmatch(r"\d+", text)
@@ -208,7 +215,7 @@ def extract_pdf(path):
                 "preserved_reason": "table" if tabular else None,
                 "lines": [{"text": t, "bbox": list(l["bbox"]), "font_size": l['spans'][0]['size'] if l['spans'] else size}
                           for t, l in zip(line_texts, lines)],
-                "sentences": ([{"id": ident + '_001', "source": text, "start": 0, "end": len(text)}] if title else split_periods(text, ident)) if eligible else [], "status": "pending" if eligible else "preserved",
+                "sentences": ([{"id": ident + '_001', "source": text, "start": 0, "end": len(text)}] if title else split_sentences(text, ident)) if eligible else [], "status": "pending" if eligible else "preserved",
                 "translations": {}, "history": [], "issues": []})
     if not any(b["sentences"] for b in blocks):
         raise ValueError("没有找到可翻译的文字层；扫描 PDF 的 OCR 将在后续支持")
@@ -244,20 +251,23 @@ def search_pdf(path, query, blocks):
 def refresh_layout(doc, extracted):
     """Keep translations only when original text and immutable sentence IDs match."""
     previous = {b['id']: b for b in doc['blocks']}
+    changed_units = False
     for block in extracted['blocks']:
         old = previous.get(block['id'])
+        if old and old['sentences'] != block['sentences']:
+            changed_units = True
         if (block['sentences'] and old and old['source'] == block['source']
-                and [s['id'] for s in old['sentences']] == [s['id'] for s in block['sentences']]):
+                and [(s['id'], s['source']) for s in old['sentences']] == [(s['id'], s['source']) for s in block['sentences']]):
             for key in ('status', 'translations', 'history', 'issues'):
                 block[key] = old[key]
     table_ids = {s['id'] for b in extracted['blocks'] if b.get('preserved_reason') == 'table'
                  for s in previous.get(b['id'], {}).get('sentences', [])}
     doc['blocks'] = extracted['blocks']
     doc['layout_version'] = LAYOUT_VERSION
-    if table_ids:
+    if table_ids or changed_units:
         # The score denominator and exported overlay changed. Require fresh QE,
         # keeping all unaffected prose translations and the prior history on disk.
-        doc['quality'] = {'status': 'not_evaluated', 'reason': '表格已保留原版，正文等待重新评估'}
+        doc['quality'] = {'status': 'not_evaluated', 'reason': '版面或分句已更新，正文等待重新评估'}
         if doc.get('pdf_export'):
             doc['pdf_export']['state'] = 'stale'
         if doc.get('state') == 'complete':
